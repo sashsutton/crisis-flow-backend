@@ -20,7 +20,7 @@ engine = CrisisEngine()
 def home():
     return {"status": "online", "message": "Crisis Flow API is running !"}
 
-@app.get("data")
+@app.get("/data")
 def get_dashboard_data():
     return engine.get_dashboard_data()
 
