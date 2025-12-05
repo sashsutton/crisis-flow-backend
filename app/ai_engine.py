@@ -1,52 +1,42 @@
-import csv
-import random
-import os
+import pandas as pd
+import numpy as np
 from sentence_transformers import SentenceTransformer
 from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
+import os
 
 class CrisisEngine:
     def __init__(self):
-        # 1. Load Model
-        # We use the CPU-optimized model path
+        # 1. Load the Model
+        # We check for a local cache first
         cache_path = os.path.join(os.getcwd(), "model_cache")
         self.model = SentenceTransformer('all-MiniLM-L6-v2', cache_folder=cache_path)
         
-        # 2. Load Data using CSV (Saves ~80MB RAM vs Pandas)
-        self.data = []
-        csv_path = 'data/train.csv'
-        
+        # 2. Load Data with Pandas
+        # We read the CSV and randomly sample 200 rows for the dashboard
         try:
-            with open(csv_path, 'r', encoding='utf-8', errors='replace') as f:
-                # Reads file line by line without loading the whole thing into RAM
-                reader = csv.DictReader(f)
-                
-                # Convert to list to sample
-                all_rows = [row for row in reader if row.get('text')]
-                
-                # Randomly sample 200 items to keep memory usage low
-                if len(all_rows) > 200:
-                    self.data = random.sample(all_rows, 200)
-                else:
-                    self.data = all_rows
-                    
+            self.df = pd.read_csv('data/train.csv')
+            # Ensure we don't crash if the file is smaller than 200 rows
+            sample_n = min(200, len(self.df))
+            self.df = self.df.sample(n=sample_n, random_state=42).reset_index(drop=True)
+            
+            # Fill missing locations
+            self.df['location'] = self.df['location'].fillna('Unknown')
+            
         except Exception as e:
             print(f"Error loading CSV: {e}")
-            self.data = []
+            self.df = pd.DataFrame(columns=['text', 'location'])
 
-        # 3. Process Data (The AI Part)
-        if self.data:
-            # Extract text list for the AI model
-            texts = [row['text'] for row in self.data]
+        # 3. Process Data (AI Analysis)
+        if not self.df.empty:
+            # Convert text to vectors (The heavy lifting)
+            self.vectors = self.model.encode(self.df['text'].tolist(), show_progress_bar=False)
             
-            # Convert text to numbers (Vectors)
-            self.vectors = self.model.encode(texts, show_progress_bar=False)
-            
-            # Clustering (Find 5 themes)
+            # Clustering: Group messages by similarity
             self.kmeans = KMeans(n_clusters=5, random_state=42)
             self.clusters = self.kmeans.fit_predict(self.vectors)
             
-            # Dimensionality Reduction (384 dims -> 2 dims for the map)
+            # Dimensionality Reduction: Squash 384 dimensions to 2 for the plot
             self.pca = PCA(n_components=2)
             self.coords = self.pca.fit_transform(self.vectors)
         else:
@@ -56,22 +46,17 @@ class CrisisEngine:
         
     def get_dashboard_data(self):
         """
-        Returns data formatted exactly like the frontend expects.
+        Format data for the React Frontend
         """
         results = []
-        if not self.data:
+        if self.df.empty:
             return results
 
-        for i, row in enumerate(self.data):
-            # Handle missing locations gracefully
-            loc = row.get('location')
-            if not loc or loc == "":
-                loc = "Unknown"
-
+        for i, row in self.df.iterrows():
             results.append({
-                "id": i, 
+                "id": int(i),
                 "text": row['text'],
-                "location": loc,
+                "location": row['location'],
                 "cluster_id": int(self.clusters[i]),
                 "pca_x": float(self.coords[i][0]), 
                 "pca_y": float(self.coords[i][1]),
