@@ -25,7 +25,21 @@ class CrisisEngine:
         #Squash 384 dims -> 2 dims (x, y)
         self.pca = PCA(n_components=2)
         self.coords = self.pca.fit_transform(self.vectors)
-        
+    def get_dashboard_data(self):
+        """
+        Returns data ready for the Frontend Map & Charts
+        """
+        results = []
+        for i, row in self.df.iterrows():
+            results.append({
+                "id": int(i),
+                "text": row['text'],
+                "location": row['location'] if pd.notna(row['location']) else "Unknown",
+                "cluster_id": int(self.clusters[i]),
+                "pca_x": self.coords[i][0],
+                "pca_y": self.coords[i][1],
+            })
+            return
         
         
         
