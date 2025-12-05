@@ -39,7 +39,8 @@ class CrisisEngine:
                 "pca_x": self.coords[i][0],
                 "pca_y": self.coords[i][1],
             })
-            return
+            return results
+        
         
         
         
