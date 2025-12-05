@@ -13,6 +13,9 @@ The **CrisisFlow AI Engine** powers real-time disaster intelligence by transform
 
 The backend is built with **FastAPI** and exposes endpoints used by the CrisisFlow dashboard.
 
+- **Frontend Repository:** [GitHub - CrisisFlow Frontend](https://github.com/sashsutton/crisis-flow-frontend)
+- **Live Website:** [CrisisFlow Dashboard](https://crisis-flow-frontend-mhy4qore7-sashasuttons-projects.vercel.app/)
+
 ---
 
 ## 📁 Dataset Source
